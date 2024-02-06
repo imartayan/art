@@ -21,7 +21,7 @@ impl<V, const K: usize> FromIterator<([u8; K], V)> for Art<V, K> {
     where
         T: IntoIterator<Item = ([u8; K], V)>,
     {
-        let mut art = Art::new();
+        let mut art = Self::new();
         for (k, v) in iter {
             art.insert(k, v);
         }
@@ -38,8 +38,8 @@ impl<V: fmt::Debug, const K: usize> fmt::Debug for Art<V, K> {
 }
 
 impl<V, const K: usize> Default for Art<V, K> {
-    fn default() -> Art<V, K> {
-        Art {
+    fn default() -> Self {
+        Self {
             len: 0,
             root: Node::none(),
         }
@@ -71,11 +71,11 @@ impl<V: PartialEq, const K: usize> PartialEq for Art<V, K> {
 impl<V: Eq, const K: usize> Eq for Art<V, K> {}
 
 impl<V, const K: usize> Art<V, K> {
-    pub const fn new() -> Art<V, K> {
+    pub const fn new() -> Self {
         // TODO compiler error if K is above a range that
         // will cause stack overflow when the recursive prune
         // function is called
-        Art {
+        Self {
             len: 0,
             root: Node::none(),
         }
@@ -580,15 +580,15 @@ struct Header {
 struct Node<V>(usize, PhantomData<V>);
 
 impl<V: Clone> Clone for Node<V> {
-    fn clone(&self) -> Node<V> {
+    fn clone(&self) -> Self {
         match self.deref() {
-            NodeRef::Node1(n1) => Node::node1(Box::new(n1.clone())),
-            NodeRef::Node4(n4) => Node::node4(Box::new(n4.clone())),
-            NodeRef::Node16(n16) => Node::node16(Box::new(n16.clone())),
-            NodeRef::Node48(n48) => Node::node48(Box::new(n48.clone())),
-            NodeRef::Node256(n256) => Node::node256(Box::new(n256.clone())),
-            NodeRef::None => Node::default(),
-            NodeRef::Value(v) => Node::value(v.clone()),
+            NodeRef::Node1(n1) => Self::node1(Box::new(n1.clone())),
+            NodeRef::Node4(n4) => Self::node4(Box::new(n4.clone())),
+            NodeRef::Node16(n16) => Self::node16(Box::new(n16.clone())),
+            NodeRef::Node48(n48) => Self::node48(Box::new(n48.clone())),
+            NodeRef::Node256(n256) => Self::node256(Box::new(n256.clone())),
+            NodeRef::None => Self::default(),
+            NodeRef::Value(v) => Self::value(v.clone()),
         }
     }
 }
@@ -674,52 +674,52 @@ enum NodeMut<'a, V> {
 }
 
 impl<V> Default for Node<V> {
-    fn default() -> Node<V> {
-        Node::none()
+    fn default() -> Self {
+        Self::none()
     }
 }
 
 impl<V> Node<V> {
-    const fn none() -> Node<V> {
-        Node(TAG_NONE, PhantomData)
+    const fn none() -> Self {
+        Self(TAG_NONE, PhantomData)
     }
 
-    fn node1(n1: Box<Node1<V>>) -> Node<V> {
+    fn node1(n1: Box<Node1<V>>) -> Self {
         let ptr: *mut Node1<V> = Box::into_raw(n1);
         let us = ptr as usize;
         assert_eq!(us & TAG_1, 0);
-        Node(us | TAG_1, PhantomData)
+        Self(us | TAG_1, PhantomData)
     }
 
-    fn node4(n4: Box<Node4<V>>) -> Node<V> {
+    fn node4(n4: Box<Node4<V>>) -> Self {
         let ptr: *mut Node4<V> = Box::into_raw(n4);
         let us = ptr as usize;
         assert_eq!(us & TAG_4, 0);
-        Node(us | TAG_4, PhantomData)
+        Self(us | TAG_4, PhantomData)
     }
 
-    fn node16(n16: Box<Node16<V>>) -> Node<V> {
+    fn node16(n16: Box<Node16<V>>) -> Self {
         let ptr: *mut Node16<V> = Box::into_raw(n16);
         let us = ptr as usize;
         assert_eq!(us & TAG_16, 0);
-        Node(us | TAG_16, PhantomData)
+        Self(us | TAG_16, PhantomData)
     }
 
-    fn node48(n48: Box<Node48<V>>) -> Node<V> {
+    fn node48(n48: Box<Node48<V>>) -> Self {
         let ptr: *mut Node48<V> = Box::into_raw(n48);
         let us = ptr as usize;
         assert_eq!(us & TAG_48, 0);
-        Node(us | TAG_48, PhantomData)
+        Self(us | TAG_48, PhantomData)
     }
 
-    fn node256(n256: Box<Node256<V>>) -> Node<V> {
+    fn node256(n256: Box<Node256<V>>) -> Self {
         let ptr: *mut Node256<V> = Box::into_raw(n256);
         let us = ptr as usize;
         assert_eq!(us & TAG_256, 0);
-        Node(us | TAG_256, PhantomData)
+        Self(us | TAG_256, PhantomData)
     }
 
-    fn value(value: V) -> Node<V> {
+    fn value(value: V) -> Self {
         let bx = Box::new(MinAlign(value));
         let ptr: *mut MinAlign<V> = Box::into_raw(bx);
         let us = ptr as usize;
@@ -728,7 +728,7 @@ impl<V> Node<V> {
         } else {
             assert_eq!(ptr, std::ptr::NonNull::dangling().as_ptr());
         }
-        Node(us | TAG_VALUE, PhantomData)
+        Self(us | TAG_VALUE, PhantomData)
     }
 
     fn take(&mut self) -> Option<V> {
@@ -879,7 +879,7 @@ impl<V> Node<V> {
         new_node4.header.path[..shared_bytes].copy_from_slice(&prefix[..shared_bytes]);
         new_node4.header.path_len = u8::try_from(shared_bytes).unwrap();
 
-        let new_node = Node::node4(new_node4);
+        let new_node = Self::node4(new_node4);
 
         assert!(prefix.starts_with(new_node.prefix()));
 
@@ -912,7 +912,7 @@ impl<V> Node<V> {
     fn assert_size(&self) {
         debug_assert_eq!(
             {
-                let slots: &[Node<V>] = match self.deref() {
+                let slots: &[Self] = match self.deref() {
                     NodeRef::Node1(_) => {
                         debug_assert_eq!(self.len(), 1);
                         return;
@@ -972,7 +972,7 @@ impl<V> Node<V> {
         &header.path[..header.path_len as usize]
     }
 
-    fn child(&self, byte: u8) -> Option<&Node<V>> {
+    fn child(&self, byte: u8) -> Option<&Self> {
         match self.deref() {
             NodeRef::Node1(n1) => n1.child(byte),
             NodeRef::Node4(n4) => n4.child(byte),
@@ -989,7 +989,7 @@ impl<V> Node<V> {
         byte: u8,
         is_add: bool,
         clear_child_index: bool,
-    ) -> Option<(&mut u16, &mut Node<V>)> {
+    ) -> Option<(&mut u16, &mut Self)> {
         // TODO this is gross
         if self.child(byte).is_none() {
             if !is_add {
@@ -1011,7 +1011,7 @@ impl<V> Node<V> {
         })
     }
 
-    fn should_shrink(&self) -> bool {
+    const fn should_shrink(&self) -> bool {
         match (self.deref(), self.len()) {
             (NodeRef::Node1(_), 0)
             | (NodeRef::Node4(_), 1)
@@ -1036,12 +1036,12 @@ impl<V> Node<V> {
         *self = match (swapped.deref_mut(), children) {
             (NodeMut::Node1(_), 0) => {
                 dropped = true;
-                Node::none()
+                Self::none()
             }
-            (NodeMut::Node4(n4), 1) => Node::node1(n4.downgrade()),
-            (NodeMut::Node16(n16), 4) => Node::node4(n16.downgrade()),
-            (NodeMut::Node48(n48), 16) => Node::node16(n48.downgrade()),
-            (NodeMut::Node256(n256), 48) => Node::node48(n256.downgrade()),
+            (NodeMut::Node4(n4), 1) => Self::node1(n4.downgrade()),
+            (NodeMut::Node16(n16), 4) => Self::node4(n16.downgrade()),
+            (NodeMut::Node48(n48), 16) => Self::node16(n48.downgrade()),
+            (NodeMut::Node256(n256), 48) => Self::node48(n256.downgrade()),
             (_, _) => unreachable!(),
         };
 
@@ -1056,10 +1056,10 @@ impl<V> Node<V> {
         let old_header = *self.header();
         let mut swapped = std::mem::take(self);
         *self = match swapped.deref_mut() {
-            NodeMut::Node1(n1) => Node::node4(n1.upgrade()),
-            NodeMut::Node4(n4) => Node::node16(n4.upgrade()),
-            NodeMut::Node16(n16) => Node::node48(n16.upgrade()),
-            NodeMut::Node48(n48) => Node::node256(n48.upgrade()),
+            NodeMut::Node1(n1) => Self::node4(n1.upgrade()),
+            NodeMut::Node4(n4) => Self::node16(n4.upgrade()),
+            NodeMut::Node16(n16) => Self::node48(n16.upgrade()),
+            NodeMut::Node48(n48) => Self::node256(n48.upgrade()),
             NodeMut::Node256(_) => unreachable!(),
             NodeMut::None => unreachable!(),
             NodeMut::Value(_) => unreachable!(),
@@ -1068,18 +1068,18 @@ impl<V> Node<V> {
     }
 
     fn node_iter<'a>(&'a self) -> NodeIter<'a, V> {
-        let children: Box<dyn 'a + DoubleEndedIterator<Item = (u8, &'a Node<V>)>> =
-            match self.deref() {
-                NodeRef::Node1(n1) => Box::new(n1.iter()),
-                NodeRef::Node4(n4) => Box::new(n4.iter()),
-                NodeRef::Node16(n16) => Box::new(n16.iter()),
-                NodeRef::Node48(n48) => Box::new(n48.iter()),
-                NodeRef::Node256(n256) => Box::new(n256.iter()),
+        let children: Box<dyn 'a + DoubleEndedIterator<Item = (u8, &'a Self)>> = match self.deref()
+        {
+            NodeRef::Node1(n1) => Box::new(n1.iter()),
+            NodeRef::Node4(n4) => Box::new(n4.iter()),
+            NodeRef::Node16(n16) => Box::new(n16.iter()),
+            NodeRef::Node48(n48) => Box::new(n48.iter()),
+            NodeRef::Node256(n256) => Box::new(n256.iter()),
 
-                // this is only an iterator over nodes, not leaf values
-                NodeRef::None => Box::new([].into_iter()),
-                NodeRef::Value(_) => Box::new([].into_iter()),
-            };
+            // this is only an iterator over nodes, not leaf values
+            NodeRef::None => Box::new(std::iter::empty()),
+            NodeRef::Value(_) => Box::new(std::iter::empty()),
+        };
 
         NodeIter {
             node: self,
@@ -1096,8 +1096,8 @@ struct Node1<V> {
 }
 
 impl<V> Default for Node1<V> {
-    fn default() -> Node1<V> {
-        Node1 {
+    fn default() -> Self {
+        Self {
             header: Default::default(),
             key: 0,
             slot: Node::default(),
@@ -1140,8 +1140,8 @@ struct Node4<V> {
 }
 
 impl<V> Default for Node4<V> {
-    fn default() -> Node4<V> {
-        Node4 {
+    fn default() -> Self {
+        Self {
             header: Default::default(),
             keys: [255; 4],
             slots: [Node::none(), Node::none(), Node::none(), Node::none()],
@@ -1228,8 +1228,8 @@ struct Node16<V> {
 }
 
 impl<V> Default for Node16<V> {
-    fn default() -> Node16<V> {
-        Node16 {
+    fn default() -> Self {
+        Self {
             header: Default::default(),
             keys: [255; 16],
             slots: [
@@ -1348,8 +1348,8 @@ struct Node48<V> {
 }
 
 impl<V> Default for Node48<V> {
-    fn default() -> Node48<V> {
-        Node48 {
+    fn default() -> Self {
+        Self {
             header: Default::default(),
             child_index: [255; 256],
             slots: [
@@ -1524,8 +1524,8 @@ impl<V> Node256<V> {
 }
 
 impl<V> Default for Node256<V> {
-    fn default() -> Node256<V> {
-        Node256 {
+    fn default() -> Self {
+        Self {
             header: Default::default(),
             slots: [
                 Node::none(),
